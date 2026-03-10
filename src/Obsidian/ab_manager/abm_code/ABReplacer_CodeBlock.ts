@@ -6,7 +6,7 @@ import{
 } from "obsidian";
 import { ABConvertManager } from "@/ABConverter/ABConvertManager";
 import { abConvertEvent } from "@/ABConverter/ABConvertEvent";
-import { ABCSetting, ABReg } from "@/ABConverter/ABReg";
+import { ABCSetting, ABReg } from "@/ABConverter/ABSetting";
 import { ABReplacer_Widget } from "../abm_cm/ABReplacer_Widget";
 
 export class ABReplacer_CodeBlock{
@@ -16,7 +16,7 @@ export class ABReplacer_CodeBlock{
     blockEl: HTMLElement,                       // 代码块渲染的元素
     ctx: MarkdownPostProcessorContext,
   ) {
-    ABCSetting.global_ctx = ctx;
+    ABCSetting.obsidian.global_ctx = ctx;
 
     const root_div = document.createElement("div");  blockEl.appendChild(root_div); root_div.classList.add("ab-replace");
     const list_src = src.split("\n")

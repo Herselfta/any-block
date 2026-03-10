@@ -6,8 +6,8 @@
 
 ## AnyBlock是什么?
 
-- 一个高通用markdown扩展的解析和渲染的模块/插件。
-  (**Obsidian插件, Markdown-it插件, Vuepress插件, CodeMirror插件, 在线App**)
+- 一个高通用markdown扩展的解析和渲染的模块/插件。  
+  (**Obsidian、CodeMirror、Markdown-it (Vuepress/Vitepress)、Remark (Quartz/Docusaurus) 插件, 在线App**)
 - 功能: 你可以通过许多方式灵活地创建一个“块”。它还提供了许多有用的功能，如“列表转表格”等
 - 功能 (详细): 你可以通过列表/标题/表格/引用块/代码块/Markdown-it的首尾`:::`等方式来快速选择一个片段，并将该片段转换为表格/标签页/目录/卡片/分栏/时间线/思维导图/plantuml图表/节点图等结果
 
@@ -99,6 +99,12 @@ mermaid 思维导图
 ![](./docs/assets/list2mindmap3.png)
 
 上面只是插件的**其中的几种**处理器。实际上**还支持非常多的处理器和功能**，处理器间还能随意串行组合，并且除了列表选择器外还支持标题、代码块、引用块等诸多选择器。更多的功能参见[更多文档](https://linczero.github.io/MdNote_Public/%E4%BA%A7%E5%93%81%E6%96%87%E6%A1%A3/AnyBlock/)
+
+## 可视化编辑 - AnyMenu
+
+推荐与 AnyBlock 作者正在开发的另一插件 [AnyMenu](https://github.com/any-menu/any-menu/) 一同使用，可以降低学习成本与快速生成模板:
+
+![](./docs/assets/anymenu.png)
 
 ## 旧效果展示
 

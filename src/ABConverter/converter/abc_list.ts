@@ -6,7 +6,7 @@
  * - 表格数据 -> 列表数据
  */
 
-import { ABReg } from '../ABReg'
+import { ABReg } from '../ABSetting'
 import {ABConvert_IOEnum, ABConvert, type ABConvert_SpecSimp} from "./ABConvert"
 import {ABConvertManager} from "../ABConvertManager"
 
@@ -51,7 +51,8 @@ export class ListProcess{
    * 列表文本转列表数据 
    * @bug 不能跨缩进，后面再对异常缩进进行修复
    * @bug 内换行` | `可能有bug
-   * @param modeG: 识别符号 ` | `（该选项暂时不可用，0为不识别，1为识别为下一级，2为识别为同一级，转ultable时会用到选项2）
+   * @param modeG: 识别符号 ` | ` (ABReg.inline_split)
+   *   (该选项暂时不可用，目前强制开启且为1。原设计: 0为不识别，1为识别为下一级，2为识别为同一级，转ulTable时会用到选项2)
    */
   static list2data(text: string, modeG=true){
     /** 内联补偿列表。只保留comp>0的项 */
@@ -442,6 +443,22 @@ export class ListProcess{
     return list_itemInfo2
   }
 
+  // 修复任务列表转列表结构后，任务项丢失
+  static data2taskData(
+    list_itemInfo: List_ListItem
+  ) {
+    for (let item of list_itemInfo) {
+      item.content = item.content.split('\n').map(line => {
+        const match = line.match(/\[.\] /)
+        if (match) {
+          return '- ' + line
+        }
+        return line
+      }).join('\n')
+    }
+    return list_itemInfo
+  }
+
   /** 二层树转多层一叉树 
    * example:
    * - 1
@@ -594,6 +611,17 @@ const abc_listdata2strict = ABConvert.factory({
   detail: "将列表数据转化为更规范的列表数据。统一缩进符(2空格 4空格 tab混用)为level 1、禁止跳等级(h1直接就到h3)",
   process: (el, header, content: List_ListItem): List_ListItem=>{
     return ListProcess.data2strict(content)
+  }
+})
+
+const abc_listdata2task = ABConvert.factory({
+  id: "listdata2task",
+  name: "listdata支持任务列表",
+  process_param: ABConvert_IOEnum.list_stream,
+  process_return: ABConvert_IOEnum.list_stream,
+  detail: "当列表中存在任务列表项时，令此列表项支持任务项",
+  process: (el, header, content: List_ListItem): List_ListItem=>{
+    return ListProcess.data2taskData(content)
   }
 })
 

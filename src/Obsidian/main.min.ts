@@ -7,7 +7,10 @@
  * - 接管渲染后 (渲染/阅读模式)
  */
 
-import { MarkdownRenderChild, MarkdownRenderer, loadMermaid, Plugin, MarkdownView, type MarkdownPostProcessorContext } from 'obsidian'
+import {
+  MarkdownRenderChild, MarkdownRenderer, loadMermaid, Plugin, MarkdownView,
+  type MarkdownPostProcessorContext
+} from 'obsidian'
 
 // 转换器模块
 import { ABConvertManager, ABCSetting } from "@/ABConverter/index.min" // [!code hl] min
@@ -15,16 +18,21 @@ import { ABConvertManager, ABCSetting } from "@/ABConverter/index.min" // [!code
 import { ABReplacer_CodeBlock } from "./ab_manager/abm_code/ABReplacer_CodeBlock"
 import { ABStateManager, global_timer } from "./ab_manager/abm_cm/ABStateManager"
 import { ABSelector_PostHtml } from "./ab_manager/abm_html/ABSelector_PostHtml"
-import type { ABSettingInterface } from "./config/ABSettingTab"
-import { ABSettingTab, AB_SETTINGS } from "./config/ABSettingTab"
+import { registerCommands, registerStatus } from './utils'
+import { ABSettingTab, AB_SETTINGS, type ABSettingInterface } from "./config/ABSettingTab"
+import { ABAlias_user } from '@/ABConverter/ABAlias'
 
 export default class AnyBlockPlugin extends Plugin {
   settings: ABSettingInterface
 
   async onload() {
-    ABCSetting.global_app = this.app
-    await this.loadSettings();
-    this.addSettingTab(new ABSettingTab(this.app, this));
+    ABCSetting.obsidian.global_app = this.app
+    await this.loadSettings()
+    this.addSettingTab(new ABSettingTab(this.app, this))
+
+    // 添加 obsidian 命令和UI元素
+    registerStatus(this)
+    registerCommands(this)
 
     // 适配 - 将ob的渲染行为传入回调函数 (目的是将转换器和Obsidian相解耦合)
     ABConvertManager.getInstance().redefine_renderMarkdown((markdown: string, el: HTMLElement, ctx?: MarkdownPostProcessorContext): void => {
@@ -49,7 +57,7 @@ export default class AnyBlockPlugin extends Plugin {
 
       const mdrc: MarkdownRenderChild = new MarkdownRenderChild(el);
       if (ctx) ctx.addChild(mdrc);
-      else if (ABCSetting.global_ctx) ABCSetting.global_ctx.addChild(mdrc);
+      else if (ABCSetting.obsidian.global_ctx) ABCSetting.obsidian.global_ctx.addChild(mdrc);
       /**
        * Renders markdown string to an HTML element.
        * @param app - A reference to the app object
@@ -63,12 +71,12 @@ export default class AnyBlockPlugin extends Plugin {
     })
 
     // 适配 - mermaid
-    ABCSetting.mermaid = loadMermaid()
-    ABCSetting.mermaid.then(mermaid => {
-      const isDarkTheme = document.body.classList.contains('theme-dark')
-      const theme = isDarkTheme ? 'dark' : 'light'
-      mermaid.initialize({ theme: theme }) // 只初始化一次，减少频繁调用。但ob提供的版本，mermaid多了也会卡，不知道为什么
-    })
+    ABCSetting.obsidian.mermaid = loadMermaid()
+    // ABCSetting.obsidian.mermaid.then(mermaid => {
+    //   const isDarkTheme = document.body.classList.contains('theme-dark')
+    //   const theme = isDarkTheme ? 'dark' : 'light' // theme: theme
+    //   mermaid.initialize({ theme: theme }) // 只初始化一次，减少频繁调用。但ob提供的版本，mermaid多了也会卡，不知道为什么
+    // })
 
     // 钩子组1 - 代码块
     this.registerMarkdownCodeBlockProcessor("ab", ABReplacer_CodeBlock.processor);
@@ -100,26 +108,53 @@ export default class AnyBlockPlugin extends Plugin {
 
     // 钩子组3 - 渲染模式 后处理器
     const htmlProcessor = ABSelector_PostHtml.processor.bind(this)
-    this.registerMarkdownPostProcessor(htmlProcessor);
+    this.registerMarkdownPostProcessor(htmlProcessor)
 
-    console.log('>>> Loading plugin AnyBlock Min');
+    console.log('>>> Loading plugin AnyBlock Min')
   }
 
   async loadSettings() {
     const data = await this.loadData() // 如果没有配置文件则为null
-		this.settings = Object.assign({}, AB_SETTINGS, data); // 合并默认值和配置文件的值
+    this.settings = Object.assign({}, AB_SETTINGS, data) // 合并默认值和配置文件的值
 
-    // 如果没有配置文件则生成一个默认值的配置文件
-    if (!data) {
-      this.saveData(this.settings);
+    // 应用自定义别名
+    for(const result of this.settings.alias_user) {
+      let newReg: string|RegExp;
+      if (/^\/.*\/$/.test(result.regex)) {
+        newReg = new RegExp(result.regex.slice(1,-1)) // 去除两侧的`/`并变回regExp
+      } else {
+        newReg = result.regex
+      }
+      ABAlias_user.push({
+        regex: newReg,
+        replacement: result.replacement
+      })
     }
-	}
-	async saveSettings() {
-		await this.saveData(this.settings);
-	}
+
+    // 同步到通用设置 (一致性，from obsidian专属设置)
+    ABCSetting.is_debug = this.settings.is_debug
+    ABCSetting.pro.disable = this.settings.pro.disable
+    ABCSetting.pro.enable_alias_override = this.settings.pro.enable_alias_override
+    ABCSetting.pro.enable_callout_selector = this.settings.pro.enable_callout_selector
+    ABCSetting.pro.editableblock_defaultRender = this.settings.pro.editableblock_defaultRender
+
+    // 同步到文件 (读取也执行一次，避免没配置文件/配置文件错误/新版本增加了新的配置选项)
+    this.saveData(this.settings)
+  }
+  async saveSettings() {
+    // 同步到通用设置 (一致性，from obsidian专属设置)
+    ABCSetting.is_debug = this.settings.is_debug
+    ABCSetting.pro.disable = this.settings.pro.disable
+    ABCSetting.pro.enable_alias_override = this.settings.pro.enable_alias_override
+    ABCSetting.pro.enable_callout_selector = this.settings.pro.enable_callout_selector
+    ABCSetting.pro.editableblock_defaultRender = this.settings.pro.editableblock_defaultRender
+
+    // 同步到文件
+    await this.saveData(this.settings)
+  }
 
   onunload() {
-    console.log('<<< Unloading plugin AnyBlock Min');
-    if (global_timer !== null) { window.clearInterval(global_timer); }
+    console.log('<<< Unloading plugin AnyBlock Min')
+    if (global_timer !== null) { window.clearInterval(global_timer) }
   }
 }

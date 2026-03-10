@@ -5,7 +5,7 @@
 import {ABConvert_IOEnum, ABConvert, type ABConvert_SpecSimp} from "./ABConvert"
 import {ABConvertManager} from "../ABConvertManager"
 import {C2ListProcess, type List_C2ListItem} from "./abc_c2list"
-import {ABCSetting, ABReg} from "../ABReg"
+import {ABCSetting, ABReg} from "../ABSetting"
 
 /// 按mdit-tabs的标准转化为二列列表数据
 export function mditTabs2listdata(content:string, reg: RegExp): List_C2ListItem {
@@ -75,7 +75,7 @@ const abc_mditABDemo = ABConvert.factory({
     // 如果内部包含 mermaid/mermaid markmap/markmap 这三个图，会渲染失败或位置错误
 
     // 二选一，markdown-it-tab 版本
-    if (ABCSetting.env == "vuepress") {
+    if (ABCSetting.env == "markdown-it") {
       ABConvertManager.getInstance().m_renderMarkdownFn(`::::: tabs
 
 @tab show

@@ -8,10 +8,10 @@ import {
 import { ConfDecoration } from "../../config/ABSettingTab"
 import type AnyBlockPlugin from "../../main"
 import { ABReplacer_Render } from "./ABReplacer_Render"
-import { ABReg } from "@/ABConverter/ABReg"
+import { ABReg } from "@/ABConverter/ABSetting"
 import { ABConvertManager } from "@/ABConverter/ABConvertManager"
 import { abConvertEvent } from "@/ABConverter/ABConvertEvent";
-import { ABCSetting } from '@/ABConverter/ABReg'
+import { ABCSetting } from '@/ABConverter/ABSetting'
 
 /**
  * Html处理器
@@ -36,7 +36,7 @@ export class ABSelector_PostHtml{
     el: HTMLElement, 
     ctx: MarkdownPostProcessorContext
   ) {
-    ABCSetting.global_ctx = ctx;
+    ABCSetting.obsidian.global_ctx = ctx;
 
     if (this.settings.decoration_render==ConfDecoration.none) return // 若设置里不启用，直接退出
     const mdSrc: HTMLSelectorRangeSpec | null = getSourceMarkdown(el, ctx) // 获取el对应的源md
@@ -62,17 +62,18 @@ export class ABSelector_PostHtml{
 
     // b2. html渲染模式的逐个切割块调用（需要跨切割块寻找）
     //     Obsidian后处理机制：一个文档会被切割成成div stream，这是一个div数组，每个数组元素会在这里走一遍。即分步渲染，有益于性能优化
-    else{
+    else {
       // 一些基本信息
       const is_start = (mdSrc.from_line == 0 || mdSrc.content_all.split("\n").slice(0, mdSrc.from_line).join("\n").trim() == "") // 片段为md的开头 (且非cache的情况)
       const is_end = (mdSrc.to_line == mdSrc.to_line_all)   // 片段是否为md的结尾
 
-      // 一些基本信息 - 是否存在内容更新、是否是 ![[wiki]] 的子页面
+      // #region 一些基本信息 - 是否存在内容更新、是否是 ![[wiki]] 的子页面
       // 判断核心：使用cache_map
       let is_newContent:boolean = false // 是否内容变更，若是则需要强制刷新。注意，经过后面多次判断后值才是对的
       let is_subContent:boolean = false // 是否是 `![[]]`/`![[#]]` 引起的子页面内容，后者极难检测
       let cache_item = null             // 上次缓存的该文件的内容
-      ;(()=>{
+      // 引用判断
+      ;(() => {
         /**
          * 判断是否引用显示，若是则禁用强制渲染
          * 
@@ -89,30 +90,42 @@ export class ABSelector_PostHtml{
         if (!ppEl) { // 弃用。几乎没用，首次渲染时 el.parentElement 为 null，即 el 是游离状态，不在目标位置
           // is_newContent = false; is_subContent = true; return
         } else if (ppEl.classList.contains("markdown-embed-content")) { // 阅读模式: ppEl.classList.contains("markdown-reading-view")) 实时: 未知
-          is_newContent = false; is_subContent = true; return
+          is_subContent = true; return
         }
         // 判断方式2.1：判断局部内容是否等于全内容。主要判断自引用判断 (`![](#^)`)
         // 哪怕误判，这种整个文章只有一个片段的情况也不会是包含anyblock的片段
         if (mdSrc.from_line == 0 && mdSrc.to_line == mdSrc.to_line_all) {
-          is_newContent = false; is_subContent = true; return
+          is_subContent = true; return
         }
         // 判断方式二：内容与窗口的文件名是否一致 (切换页面时 (aIncludeB -> b)，有可能检测有问题，要用另一判断方式)
         const view: MarkdownView|null = this.app.workspace.getActiveViewOfType(MarkdownView); // 未聚焦(active)会返回null，非聚焦于md区返回null (也包括canvas、excalidraw)
         const path = view?.file?.path
+        const basename = view?.file?.basename
+        // 非自引用的引用子页面
         if (path && path !== ctx.sourcePath) {
-          if (this.settings.is_debug) console.log(` !! Cache check: [${path}] use ![[${ctx.sourcePath}]] `)
-          is_newContent = false; is_subContent = true; return // 注意，极难检测是否 `[[#]]`，不存cache_map，也不触发强制刷新
+          if (this.settings.is_debug) console.log(` !! Check SubPage: [${basename}] quote ![[${ctx.sourcePath}]] and no self-quote`)
+          is_subContent = true; return // 注意，极难检测是否 `[[#]]`，不存cache_map，也不触发强制刷新
         }
         // 判断方式三：是否是实时模式下显示阅读模式内容
         const containerEl = view?.containerEl // .workspace-leaf-content
         // - containerEl 为空时，不强制刷新。可能是其他面板或者是 canvas (`getActiveViewOfType(MarkdownView)` 获取到的canvas等页面为空)
+        // - data-type 为 excalidraw、thino_view 等时，不强制刷新。仅为 markdown 时强制刷新
         // - data-mode 为 source 等时，不强制刷新。仅为 preview 时强制刷新
-        // - data-type 为 excalidraw 等时，不强制刷新。仅为 markdown 时强制刷新
-        if (!containerEl || containerEl.getAttribute('data-mode') != 'preview' || containerEl.getAttribute('data-type') != 'markdown') {
-          if (this.settings.is_debug) console.log(` !! Cache check: [${path}] use ![[${ctx.sourcePath}]] in no readmode`, containerEl)
-          is_newContent = false; is_subContent = true; return // 注意，极难检测是否 `[[file#title]]`，不存cache_map，也不触发强制刷新
+        // 注意，极难检测是否 `[[file#title]]`，不存cache_map，也不触发强制刷新
+        if (!containerEl) {
+          if (this.settings.is_debug) console.log(` !! Check subPage, [${basename}] quote ![[${ctx.sourcePath}]] in canvas or other`)
+          is_subContent = true; return
+        } else if (containerEl.getAttribute('data-type') != 'markdown') {
+          if (this.settings.is_debug) console.log(` !! Check subPage, [${basename}] quote ![[${ctx.sourcePath}]] in excalidraw or other`)
+          is_subContent = true; return
+        } else if (containerEl.getAttribute('data-mode') != 'preview') {
+          if (this.settings.is_debug) console.log(` !! Check subPage, [${basename}] quote ![[${ctx.sourcePath}]] in no readmode`)
+          is_subContent = true; return
         }
-        
+        // 判断方式四：极难去判断阅读模式下的自引用标题/块的情况。TODO fix bug: 这种情况会导致阅读模式的无限刷新
+      })();
+      // 缓存判断
+      if (!is_subContent) { // 如果是子内容，则不要去更新缓存的内容
         // 先查缓存
         for (let item of cache_map) {
           if (item.name == ctx.sourcePath) {
@@ -123,27 +136,28 @@ export class ABSelector_PostHtml{
         }
         // b1. 无缓存 -> 有修改
         if (!cache_item) {
+          if (this.settings.is_debug) console.log(` !! Check cache, noCache -> hasCache, null -> ${mdSrc.content_all.length}`)
           cache_item = { name: ctx.sourcePath, content: mdSrc.content_all }
           cache_map.push(cache_item)
           is_newContent = true
-          if (this.settings.is_debug) console.log(" !! No cache -> Changed, perform a global refresh (rebuildView): ", cache_item, ctx)
         }
         // b2. 有缓存
         else {
           // b2.1. 内容变 -> 有修改
           if (cache_item.content != mdSrc.content_all) {
+            if (this.settings.is_debug) console.log(` !! Check cache, hasCache -> ChangeCache, ${cache_item.content.length} -> ${mdSrc.content_all.length}`)
             cache_item.content = mdSrc.content_all
             is_newContent = true
-            if (this.settings.is_debug) console.log(" !! Have cache & Changed -> Changed, perform a global refresh (rebuildView): ", cache_item, ctx)
           }
           // b2.2. 内容不变 -> 无修改
           else {
             is_newContent = false
           }
         }
-      })();
+      }
+      // #endregion
 
-      // 若内容修改了或处于开头位置，清空页缓存
+      // 若内容修改了或处于开头位置，清空页缓存 (光标缓存)
       if (is_newContent || is_start) {
         selected_els = []
         selected_mdSrc = null
@@ -153,7 +167,7 @@ export class ABSelector_PostHtml{
           "[current] " + `[${mdSrc.from_line},${mdSrc.to_line})/${mdSrc.to_line_all}. `+
             `${is_start?"is_start ":""}${is_end?"is_end ":""}`+
           "[last] " + `${(selected_mdSrc && selected_mdSrc.header)?"in ABBlock: "+selected_mdSrc.header+". ":""}`
-        );
+        )
       }
 
       // 若缓存变更，强制重新刷新
@@ -178,6 +192,7 @@ export class ABSelector_PostHtml{
           // }
           // @ts-expect-error WorkspaceLeaf have not rebuildView
           leaf.rebuildView()
+          if (this.settings.is_debug) console.log(" !! RebuildView: executed")
           return
         } else {
           // if (this.settings.is_debug) console.log(" but no anyblock content, no rebuildView", cache_item, 
@@ -225,6 +240,7 @@ export class ABSelector_PostHtml{
  * 特点
  *  1. 递归调用
  * 
+ * TODO 这里有些乱，不好管理，也许可以用 tokens 流的方式来重构这里的代码
  * @param targetEl 这里的el要符合规则：
  *   子元素包含 (p|ul|ol|pre|table)[]
  *   如果是callout这种，则应该要提取到callout-content级别，以满足以上规则
@@ -244,24 +260,62 @@ function findABBlock_recurve(targetEl: HTMLElement){
   */
 
   // 遍历Elements
-  for(let i=0; i<targetEl.children.length; i++){  // start form 0，因为可以递归，该层不一定需要header
-    // 1. 寻找正体 (列表/代码块/引用块/表格)
+  for(let i=0; i<targetEl.children.length; i++) {  // start form 0，因为可以递归，该层不一定需要header
     const contentEl = targetEl.children[i] as HTMLDivElement
+
+    // #region b1. mdit选择器 (p的判断较吃资源，mdit选择器不进行递归判断)
+    if (contentEl instanceof HTMLParagraphElement) {
+      // 1. 头部判断
+      const m_headtail = contentEl.getText().match(ABReg.reg_mdit_head_noprefix)
+      if (!m_headtail || !m_headtail[3] || !m_headtail[4]) continue
+
+      // 2. 头部正确，开始寻找尾部
+      let end_index = 0;
+      for(let j=i+1; j<targetEl.children.length; j++) {
+        const contentEl2 = targetEl.children[j] as HTMLDivElement
+        if (!(contentEl2 instanceof HTMLParagraphElement)) continue
+        if (contentEl2.getText() != m_headtail[3]) continue
+        end_index = j; break
+      }
+      if (end_index == 0) continue
+
+      // 3. 找到尾部了。收集中间元素 (包括头尾)
+      let contentHtml = "" // 要渲染的内容 不包括头尾
+      const elementsToReplace: HTMLElement[] = [] // 要隐藏的元素 包括头尾
+      for(let k=i; k<=end_index; k++) {
+        const el = targetEl.children[k] as HTMLElement
+        elementsToReplace.push(el)
+        if (k>i && k<end_index) {
+          contentHtml += el.outerHTML
+        }
+      }
+      i = end_index
+
+      // 4. 用新渲染元素替换
+      const newEl = document.createElement("div")
+      newEl.addClass("ab-re-rendered")
+      contentEl.parentNode?.insertBefore(newEl, contentEl)
+      elementsToReplace.forEach(el => el.hide())
+      ABConvertManager.autoABConvert(newEl, m_headtail[4], html2md(contentHtml), "mdit")
+      continue
+    }
+    // #endregion
+
+    // #region b2. header选择器
+    if (contentEl instanceof HTMLHeadingElement) {
+      // TODO
+      const selector_name = "heading"
+      continue
+    }
+    // #endregion
+
+    // #region b3. p(header) + 正体元素的形式 (ul/quote/pre/table等选择器)
+    // 1. 寻找正体 (列表/代码块/引用块/表格)
     if (!(contentEl instanceof HTMLUListElement
       || contentEl instanceof HTMLQuoteElement
       || contentEl instanceof HTMLPreElement
       || contentEl instanceof HTMLTableElement
     )) continue
-
-    // TODO 头部选择器不是一个块，要特殊处理
-    // || contentEl instanceof HTMLHeadingElement
-
-    // TODO 首尾选择器不是一个块，要特殊处理
-    // if (subEl instanceof HTMLParagraphElement){
-    //   const m_headtail = subEl.getText().match(ABReg.reg_headtail)
-    //   if (!m_headtail) return
-    //   
-    // }
     
     // 2. 寻找头部 (查看正体的上面是不是AB选择头)
     const headerEl = i==0?null:targetEl.children[i-1] as HTMLElement|null
@@ -280,6 +334,13 @@ function findABBlock_recurve(targetEl: HTMLElement){
     }
     const header_str = header_match[5]
 
+    // 选择器名
+    let selector_name = "postHtml"
+    if (contentEl instanceof HTMLUListElement) selector_name = "list"
+    else if (contentEl instanceof HTMLQuoteElement) selector_name = "quote"
+    else if (contentEl instanceof HTMLPreElement) selector_name = "code"
+    else if (contentEl instanceof HTMLTableElement) selector_name = "table"
+
     // 3. 渲染，元素替换
     //const newEl = targetEl.createDiv({cls: "ab-re-rendered"})
     const newEl = document.createElement("div")
@@ -288,6 +349,7 @@ function findABBlock_recurve(targetEl: HTMLElement){
     ABConvertManager.autoABConvert(newEl, header_str, html2md(contentEl.innerHTML), "postHtml")
     contentEl.hide()
     headerEl.hide()
+    // #endregion
   }
 }
 
@@ -327,6 +389,7 @@ let selected_mdSrc: HTMLSelectorRangeSpec|null = null;  // 已经选中的范围
  * - 取消：将selected缓存清空
  * 
  * TODO 阅读模式没有嵌套判断，在 quote/callout/list 内的 AnyBlock 不被识别
+ * TODO 这里有些乱，不好管理，也许可以用 tokens 流的方式来重构这里的代码
  * 
  * @param sub_index 位于空div内的第几个元素，仅当为0时才应该被添加到selected_mdSrc.content中，无论为几都添加到selected_els中
  */

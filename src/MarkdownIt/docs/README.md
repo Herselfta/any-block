@@ -43,6 +43,7 @@ import {} from "./ABConverter/converter/abc_list"
 import {} from "./ABConverter/converter/abc_table"
 import {} from "./ABConverter/converter/abc_deco"
 import {} from "./ABConverter/converter/abc_ex"
+import {} from "./ABConverter/converter/abc_echarts"
 import {} from "./ABConverter/converter/abc_mermaid" // 可选建议：非 min 环境下 7.1MB
 import {} from "./ABConverter/converter/abc_markmap" // 可选建议：1.3MB
 
@@ -133,5 +134,6 @@ $pnpm install -D any-block-converter-markdown-it@3.1.3-beta11
   global.HTMLUListElement = dom.window.HTMLUListElement
   global.HTMLScriptElement = dom.window.HTMLScriptElement
   dom.window.scrollTo = ()=>{} // @warn 若缺少该行，编译警告：Error: Not implemented: window.scrollTo
+  global.MutationObserver = dom.window.MutationObserver
   ```
 

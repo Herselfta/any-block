@@ -6,8 +6,8 @@
 
 ## What's AnyBlock?
 
-- A module/plugin for parsing and rendering highly versatile Markdown extensions.
-  (**Obsidian plugin, Markdown-it plugin, Vuepress plugin, CodeMirror plugin, Online App**)
+- A module/plugin for parsing and rendering highly versatile Markdown extensions.  
+  (**Obsidian, CodeMirror, Markdown-it (Vuepress/Vitepress), Remark (Quartz/Docusaurus) Plugin. Online App**)
 - Feature: You can flexibility to create a 'Block' by many means. It also provides many useful features, like `list to table` and so on
 - Feature (detail): You can select a section by list/heading/table/quote/codeBlock/markdown-it-container(`:::`), and trun into table/tabs/dir/card/column/mindmap/markmap/mermaid/PlantUML/timeLine/jsonChart/nodeTree and more
 
@@ -98,6 +98,12 @@ mermaid mindmap
 ![](./docs/assets/list2mindmap3.png)
 
 The above only shows **a few of** the processors of the plugin. In fact, it **supports a wide variety of processors and functions**. The processors can be freely combined in series, and in addition to the list selector, it also supports many other selectors such as headings, code blocks, and quote blocks. For more functions, please refer to the more detailed [documentation](https://linczero.github.io/MdNote_Public/%E4%BA%A7%E5%93%81%E6%96%87%E6%A1%A3/AnyBlock/)
+
+## Visual editing - AnyMenu
+
+It is recommended to use together with another plugin [AnyMenu](https://github.com/any-menu/any-menu/) developed by the author of AnyBlock, which can reduce the learning cost and quickly generate templates.
+
+![](./docs/assets/anymenu.png)
 
 ## Effects warrior - old
 

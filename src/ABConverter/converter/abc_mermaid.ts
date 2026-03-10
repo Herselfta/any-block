@@ -9,7 +9,7 @@
 import {ABConvert_IOEnum, ABConvert, type ABConvert_SpecSimp} from "./ABConvert"
 import {ABConvertManager} from "../ABConvertManager"
 import {ListProcess, type List_ListItem} from "./abc_list"
-import {ABCSetting, ABReg} from "../ABReg"
+import {ABCSetting, ABReg} from "../ABSetting"
 
 /**
  * 生成一个随机id
@@ -239,10 +239,12 @@ async function render_mermaidText(mermaidText: string, div: HTMLElement) {
   // 0. 四选一。使用obsidian的loadMermaid引入依赖
   // 优点：无需自带mermaid依赖
   // full-ob和min-ob选用
-  if ((ABCSetting.env.startsWith("obsidian")) && ABCSetting.mermaid) {
-    ABCSetting.mermaid.then(async mermaid => {
+  // 调试: 在 obsidian 控制台输入 `mermaid` 或 `mermaid.mermaidAPI.render("a-46485456", `graph TB\na\nbbb`).then(result => console.log("---", result))`
+  if ((ABCSetting.env.startsWith("obsidian")) && ABCSetting.obsidian.mermaid) {
+    ABCSetting.obsidian.mermaid.then(async mermaid => {
       const { svg } = await mermaid.render("ab-mermaid-"+getID(), mermaidText)
-      div.innerHTML = svg
+      const div_mermaid = document.createElement('div'); div.appendChild(div_mermaid); div_mermaid.classList.add("mermaid"); // 使用 obsidian 主题
+      div_mermaid.innerHTML = svg
     })
   }
   // 1. 四选一。自己渲

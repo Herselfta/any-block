@@ -44,12 +44,12 @@
 import MarkdownIt from "markdown-it"
 
 // 2. markdown-it-container
-import MarkdownItConstructor from "markdown-it-container";
+import MarkdownItConstructor from "markdown-it-container"
 
 // 3. markdown-it-anyblock 插件
 // import { ABConvertManager } from "./index"
 import { ABConvertManager } from "../ABConverter/ABConvertManager"
-import { ABCSetting, ABReg } from "../ABConverter/ABReg"
+import { ABCSetting, ABReg } from "../ABConverter/ABSetting"
 // 加载所有转换器 (都是可选的)
 // (当然，如果A转换器依赖B转换器，那么你导入A必然导入B)
 import "../ABConverter/converter/abc_text"
@@ -61,9 +61,11 @@ import "../ABConverter/converter/abc_dir_tree"
 import "../ABConverter/converter/abc_deco"
 import "../ABConverter/converter/abc_ex"
 import "../ABConverter/converter/abc_mdit_container"
+import "../ABConverter/converter/abc_echarts"
 import "../ABConverter/converter/abc_plantuml" // 可选建议：
 import "../ABConverter/converter/abc_mermaid"  // 可选建议：新版无额外依赖，旧版非 min 环境下 7.1MB
 import "../ABConverter/converter/abc_markmap"  // 可选建议：1.3MB
+import { jsdom_disable, jsdom_enable } from "./jsdom_init"
 
 interface Options {
   multiline: boolean;
@@ -371,10 +373,12 @@ function abRender_fence(md: MarkdownIt, options?: Partial<Options>): void {
     //`<!--afterbegin-->${rawCode}<!--beforeend--></div><!--afterend-->`
 
     // anyBlock专属渲染
+    jsdom_enable()
     const el: HTMLDivElement = document.createElement("div"); el.classList.add("ab-note", "drop-shadow");
         // 临时el，未appendClild到dom中，脱离作用域会自动销毁
         // 用临时el是因为 mdit render 是 md_str 转 html_str 的，而Ob和原插件那边是使用HTML类的，要兼容
     ABConvertManager.autoABConvert(el, ab_header, ab_content, token.markup.startsWith(':::')?'mdit':'')
+    jsdom_disable()
     
     // anyBlock特殊情况 - 需要再渲染 (ob不需要，主要是vuepress有些插件可以复用一下，并且处理mdit无客户端环境可能存在的问题)
     if (el.classList.contains("ab-raw")) {
@@ -426,9 +430,26 @@ export function ab_mdit(md: MarkdownIt, options?: Partial<Options>): void {
   })
 
   // 定义环境条件
-  ABCSetting.env = "vuepress"
+  ABCSetting.env = "markdown-it"
 
   md.use(abSelector_squareInline)
   md.use(abSelector_container)
   md.use(abRender_fence)
+}
+
+export function ab_mdit_client(md: MarkdownIt, options?: Partial<Options>): void {
+  // 定义默认渲染行为
+  ABConvertManager.getInstance().redefine_renderMarkdown((markdown: string, el: HTMLElement): void => {
+    el.classList.add("markdown-rendered")
+    
+    const result: string = md.render(markdown)
+    const el_child = document.createElement("div"); el.appendChild(el_child); el_child.innerHTML = result;
+  })
+
+  // 定义环境条件
+  ABCSetting.env = "markdown-it"
+
+  md.use(abSelector_squareInline)
+  md.use(abSelector_container)
+  // md.use(abRender_fence) // [!code hl] client端不在node端渲染，在client阶段再去找fence并渲染
 }

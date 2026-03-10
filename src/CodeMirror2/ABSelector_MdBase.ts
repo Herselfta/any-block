@@ -1,4 +1,4 @@
-import { ABReg } from "../../../ABConverter/ABReg"
+import { ABReg } from "../ABConverter/ABSetting"
 import {
   registerMdSelector, 
   type MdSelectorSpecSimp,
@@ -62,7 +62,7 @@ function easySelector(
  * 基本同 easySelector
  * 
  * 区别：
- * - easySelector:
+ * - easySelector: 给 `[<header>]` 选择器使用
  * - easySelector_headtail: 特供给头尾选择器来使用
  */
 function easySelector_headtail(
@@ -81,7 +81,7 @@ function easySelector_headtail(
     prefix: ""
   }
   // 验证首行
-  if (from_line <= 0) return null
+  if (from_line < 0) return null
   const first_line_match = list_text[from_line].match(frist_reg)
   if (!first_line_match) return null
   mdRange.prefix = first_line_match[1]  // 可以是空
@@ -93,6 +93,8 @@ function easySelector_headtail(
 
 /**
  * 首尾选择器
+ * 
+ * 这里先匹配 `mdit :::` 再向下找结束，和其他几个逻辑不太一样
  */
 const mdSelector_headtail:MdSelectorSpecSimp = {
   id: "mdit",
@@ -111,20 +113,20 @@ const mdSelector_headtail:MdSelectorSpecSimp = {
       // heading和mdit类型 需要跳过代码块内的结束标志
       if (codeBlockFlag == '') {
         const match = line.match(ABReg.reg_code)
-        if (match && match[3]) {
+        if (match && match[3]) { // 进入代码块
           codeBlockFlag = match[1]+match[3]
           continue
         }
       }
       else {
-        if (line.indexOf(codeBlockFlag) == 0) codeBlockFlag = ''
-        continue
+        if (line.indexOf(codeBlockFlag) == 0) codeBlockFlag = '' // 离开代码块
+        last_nonempty = i; continue
       }
       // 前缀不符合
       if (line.indexOf(mdRange.prefix)!=0) break
       const line2 = line.replace(mdRange.prefix, "")    // 删掉无用前缀
       // 空行
-      if (ABReg.reg_emptyline_noprefix.test(line2)) {continue}
+      if (ABReg.reg_emptyline_noprefix.test(line2)) { continue }
       last_nonempty = i
       // 结束
       if (line2.indexOf(mdRange.levelFlag)==0) { // ABReg.reg_mdit_tail_noprefix.test(line2)
@@ -143,6 +145,8 @@ registerMdSelector(mdSelector_headtail)
 
 /**
  * 列表选择器
+ * 
+ * TODO 这里是先匹配 list 再向上找 `[<header>]`，逻辑不好用。以后可以改成 pro 版逻辑
  */
 const mdSelector_list:MdSelectorSpecSimp = {
   id: "list",
@@ -180,6 +184,8 @@ registerMdSelector(mdSelector_list)
 
 /**
  * 代码块选择器
+ * 
+ * TODO 这里是先匹配 code 再向上找 `[<header>]`，逻辑不好用。以后可以改成 pro 版逻辑
  */
 const mdSelector_code:MdSelectorSpecSimp = {
   id: "code",
@@ -215,6 +221,8 @@ registerMdSelector(mdSelector_code)
 
 /**
  * 引用块选择器
+ * 
+ * TODO 这里是先匹配 quote 再向上找 `[<header>]`，逻辑不好用。以后可以改成 pro 版逻辑
  */
 const mdSelector_quote:MdSelectorSpecSimp = {
   id: "quote",
@@ -248,6 +256,8 @@ registerMdSelector(mdSelector_quote)
 
 /**
  * 表格块选择器
+ * 
+ * TODO 这里是先匹配 table 再向上找 `[<header>]`，逻辑不好用。以后可以改成 pro 版逻辑
  */
 const mdSelector_table:MdSelectorSpecSimp = {
   id: "table",
@@ -281,6 +291,8 @@ registerMdSelector(mdSelector_table)
 
 /**
  * 标题选择器
+ * 
+ * TODO 这里是先匹配 heading 再向上找 `[<header>]`，逻辑不好用。以后可以改成 pro 版逻辑
  */
 const mdSelector_heading:MdSelectorSpecSimp = {
   id: "heading",
@@ -299,26 +311,27 @@ const mdSelector_heading:MdSelectorSpecSimp = {
       // heading和mdit类型 需要跳过代码块内的结束标志
       if (codeBlockFlag == '') {
         const match = line.match(ABReg.reg_code)
-        if (match && match[3]) {
+        if (match && match[3]) { // 进入代码块
           codeBlockFlag = match[1]+match[3]
           continue
         }
       }
       else {
-        if (line.indexOf(codeBlockFlag) == 0) codeBlockFlag = ''
-        continue
+        if (line.indexOf(codeBlockFlag) == 0) codeBlockFlag = '' // 离开代码块
+        last_nonempty = i; continue
       }
       // 前缀不符合
       if (line.indexOf(mdRange.prefix)!=0) break
       const line2 = line.replace(mdRange.prefix, "")    // 删掉无用前缀
       // 空行
-      if (ABReg.reg_emptyline_noprefix.test(line2)) {continue}
+      if (ABReg.reg_emptyline_noprefix.test(line2)) { continue }
       // 更大的标题
       const match = line2.match(ABReg.reg_heading_noprefix)
-      if (!match) {last_nonempty=i; continue}
-      if (match[3].length < mdRange.levelFlag.length) {break}
+      if (!match) { last_nonempty = i; continue }
+      if (match[3].length < mdRange.levelFlag.length) { break }
       last_nonempty=i;
     }
+
     mdRange.to_line = last_nonempty+1
     mdRange.content = list_text
       .slice(from_line, mdRange.to_line)
