@@ -24,9 +24,11 @@ $ pnpm install -D markdown-it-any-block@latest
 `config.ts`
 
 ```ts
-import { ab_mdit, jsdom_init } from "markdown-it-any-block"
-jsdom_init()
+import { ab_mdit } from "markdown-it-any-block"
 
+// (可选) 如果你要在 node 环境渲染而非 client 中渲染，则加上下面的语句。在 client 端不要这样做
+import { jsdom_init } from "markdown-it-any-block/node"
+jsdom_init()
 ...
 
 const userConfig: UserConfig = {
@@ -42,6 +44,11 @@ const userConfig: UserConfig = {
 > 
 > 例如vuepress中可以创建/修改 `src/.vuepress/styles/index.scss`
 > 并添加: `@import '../../../node_modules/markdown-it-any-block/styles';`
+
+> [!WARNING]
+> BREAKCHANGE
+> 3.4.4-beta3 将 jsdom_init 移到了 markdown-it-any-block/node 中。
+> 原本在 markdown-it-any-block 中没有作分离，会存在 client 环境自动排除 jsdom 依赖并警告的问题
 
 ## 扩展补充
 
