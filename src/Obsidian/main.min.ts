@@ -8,6 +8,7 @@
  */
 
 import {
+  getLanguage, // https://github.com/obsidianmd/obsidian-translations?tab=readme-ov-file#existing-languages
   MarkdownRenderChild, MarkdownRenderer, loadMermaid, Plugin, MarkdownView,
   type MarkdownPostProcessorContext
 } from 'obsidian'
@@ -27,6 +28,7 @@ export default class AnyBlockPlugin extends Plugin {
 
   async onload() {
     ABCSetting.obsidian.global_app = this.app
+    ABCSetting.state.language = getLanguage()
     await this.loadSettings()
     this.addSettingTab(new ABSettingTab(this.app, this))
 
@@ -57,7 +59,7 @@ export default class AnyBlockPlugin extends Plugin {
 
       const mdrc: MarkdownRenderChild = new MarkdownRenderChild(el);
       if (ctx) ctx.addChild(mdrc);
-      else if (ABCSetting.obsidian.global_ctx) ABCSetting.obsidian.global_ctx.addChild(mdrc);
+      else if (ABCSetting.obsidian.global_ctx) { (ABCSetting.obsidian.global_ctx as MarkdownPostProcessorContext).addChild(mdrc) }
       /**
        * Renders markdown string to an HTML element.
        * @param app - A reference to the app object

@@ -18,10 +18,9 @@
  *    - 在VuePress-Mdit环境，没有真正的document元素，而打开文件的钩子在mdit里面又没有，可能需要要vuepress插件解决
  */
 
-import {ABConvert_IOEnum, ABConvert, type ABConvert_SpecSimp} from "./ABConvert"
-import {ABConvertManager} from "../ABConvertManager"
-import {ABCSetting, ABReg} from "../ABSetting"
-import { abConvertEvent, markmap_event } from "../ABConvertEvent";
+import DOMPurify from "dompurify"
+import { ABConvert_IOEnum, ABConvert } from "./ABConvert"
+import { ABCSetting } from "../ABSetting"
 
 /**
  * 生成一个随机id
@@ -39,14 +38,14 @@ import { abc_title2listdata } from "./abc_list";
 const transformer = new Transformer();
 //import { Markmap, loadCSS, loadJS } from 'markmap-view'
 
-const abc_list2mindmap = ABConvert.factory({
+const _abc_list2mindmap = ABConvert.factory({
 id: "list2markmap",
 name: "列表到脑图 (markmap)",
 process_param: ABConvert_IOEnum.text,
 process_return: ABConvert_IOEnum.el,
 process: (el, header, content: string): HTMLElement=>{
 		list2markmap(content, el)
-		markmap_event(el)
+		ABCSetting.obsidian.markmap_event?.(el)
 		// setTimeout(()=>{abConvertEvent(el)}, 500);
 		return el
 	}
@@ -67,13 +66,15 @@ function list2markmap(markdown: string, div: HTMLDivElement) {
 		const id = Math.random().toString(36).substring(2);
 		const svg_div = document.createElement("div"); div.appendChild(svg_div); svg_div.classList.add("ab-markmap-div"); svg_div.id = "ab-markmap-div-"+id
 		const html_str = `<svg class="ab-markmap-svg" id="ab-markmap-${id}" data-json='${JSON.stringify(root)}' style="height:${height_adapt}px"></svg>` // TODO 似乎是这里导致了`'`符号的异常
-		svg_div.innerHTML = html_str
+		svg_div.innerHTML = DOMPurify.sanitize(html_str, {
+			USE_PROFILES: { svg: true }
+		})
 	}
 	// 2. 四选一。这里不渲，交给上一层让上一层渲 (优缺点见abc_mermaid的相似方法)
 	// 当前mdit (vuepress、app) 使用
 	else {
 		div.classList.add("ab-raw")
-		div.innerHTML = `<div class="ab-raw-data" type-data="markmap" content-data='${markdown}'></div>`
+		div.innerHTML = DOMPurify.sanitize(`<div class="ab-raw-data" type-data="markmap" content-data='${markdown}'></div>`)
 	}
 	// 1.2. 四选一。纯动态/手动渲染 (优缺点见abc_mermaid的相似方法)
 	// 旧Ob使用
@@ -115,3 +116,42 @@ function list2markmap(markdown: string, div: HTMLDivElement) {
 
 	return div
 }
+
+/**
+ * 一些AB块的后触发事件 - dom加载完触发 - markmap
+ * 
+ * 注意这里的 script 标签执行动态类型会被 obsidian 审查认为是不安全的。
+ * 所以没必要打包使用时，不加载该函数
+ */
+async function markmap_event(d: Element|Document) {
+  if (ABCSetting.env == "obsidian-min") return // min 不支持 markmap
+
+  // xxx2markmap，渲染事件
+  if (d.querySelector('.ab-markmap-svg')) {
+    console.log("  - markmap_event")
+    let script_el: HTMLScriptElement|null = document.querySelector('script[script-id="ab-markmap-script"]');
+    if (script_el) script_el.remove();
+    const divEl = d as Element;
+    let markmapId = '';
+    if (divEl.tagName === 'DIV') {
+      markmapId = divEl.querySelector('.ab-markmap-svg')?.id || '';
+    }
+    script_el = document.createElement('script'); document.head.appendChild(script_el);
+    script_el.type = "module";
+    script_el.setAttribute("script-id", "ab-markmap-script");
+    script_el.textContent = `
+    import { Markmap, } from 'https://jspm.dev/markmap-view';
+    const markmapId = "${markmapId || ''}";
+    let mindmaps;
+    if (markmapId) {
+      mindmaps = document.querySelectorAll('#' + markmapId);
+    } else {
+      mindmaps = document.querySelectorAll('.ab-markmap-svg'); // 注意一下这里的选择器
+    }
+    for(const mindmap of mindmaps) {
+      mindmap.innerHTML = "";
+      Markmap.create(mindmap,null,JSON.parse(mindmap.getAttribute('data-json')));
+    }`;
+  }
+}
+ABCSetting.obsidian.markmap_event = markmap_event

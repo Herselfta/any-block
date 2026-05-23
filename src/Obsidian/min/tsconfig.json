@@ -28,6 +28,9 @@
 
     "types": ["node"],
     "experimentalDecorators": true,
+    "paths": { // [!code hl] // 最长前缀原则，会覆盖 `@/*` 的
+      "@/ABConverter/*": ["./node_modules/@anyblock/any-block-core/*"],
+    },
     // "inlineSourceMap": true, // 否则svelete文件报错：[svelte-preprocess] Encountered type error
     // "inlineSources": true,
     "module": "ESNext",

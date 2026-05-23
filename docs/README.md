@@ -4,10 +4,19 @@ home: true
 title: AnyBlock
 icon: home
 heroText: AnyBlock
-tagline: A module/plugin for parsing and rendering highly versatile Markdown extensions
+# tagline带图片时，文本最好长点能换行，否则空间分配不美观
+tagline: |
+  A module/plugin for parsing and rendering highly versatile Markdown extensions.
+  You can select any text area and treat it as a block, and then process it as you wish.
 heroStyle:
   min-height: 450px
-# heroImage: /logo.png
+heroImage: https://raw.githubusercontent.com/any-block/any-block/refs/heads/main/docs/assets/icon.png
+heroImageDark: https://raw.githubusercontent.com/any-block/any-block/refs/heads/main/docs/assets/icon.png
+heroImageStyle: {
+  height: '288px',
+  width: '288px'
+}
+# heroImage: /logo.png。但被限制不能用相对路径了，大小的话再大也会缩小回 288 px
 
 actions:
   - text: Introduce
@@ -57,11 +66,11 @@ features:
     link: https://any-block.github.io/any-block/
 ---
 
+[中文](./README.zh.md) | [English](./README.md)
+
 # README
 
 ![Obsidian plugin](https://img.shields.io/endpoint?url=https%3A%2F%2Fscambier.xyz%2Fobsidian-endpoints%2Fany-block.json) ![GitHub release (latest by date including pre-releases)](https://img.shields.io/github/v/release/LincZero/obsidian-any-block)
-
-[中文](./README.zh.md) | [English](./README.md)
 
 ## What's AnyBlock?
 
@@ -75,6 +84,7 @@ features:
 - Related links：**tutorial**、use skill、contribution、secondary development、online use
 - [Effects warrior/**Tutorial**](./README.show.md), You can learn how to use it by switching between tabs.
 - [Online Interaction/Demo](https://any-block.github.io/any-block/). You can write experiences here and learn usage through templates
+- [Online Interaction (obsidian-web)](http://obsidian.night07.com/) (Due to the size limit of the free CF, images are not supported.)
 - [Wiki](./)
 - Install
   - [Install and use in Obsidian](https://lincdocs.github.io/AnyBlock/docs/en/04.%20InstallAndUse_Obsidian.html)

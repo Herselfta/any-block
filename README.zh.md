@@ -1,8 +1,12 @@
+<div align="center" style="margin-bottom: 20px">
+  <img width="35%" src="./docs/assets/icon.png">
+</div>
+
+[中文](./README.zh.md) | [English](./README.md)
+
 # README
 
 ![Obsidian plugin](https://img.shields.io/endpoint?url=https%3A%2F%2Fscambier.xyz%2Fobsidian-endpoints%2Fany-block.json) ![GitHub release (latest by date including pre-releases)](https://img.shields.io/github/v/release/LincZero/obsidian-any-block)
-
-[中文](./README.zh.md) | [English](./README.md)
 
 ## AnyBlock是什么?
 
@@ -16,6 +20,7 @@
 - 相关链接：**教程**、使用技能、贡献、二次开发、在线使用
 - [效果展示/**教程**](https://lincdocs.github.io/AnyBlock/README.show.html), 你可以通过切换里面的标签页来学习用法
 - [在线交互/Demo](https://any-block.github.io/any-block/)，你可以在这里编写体验、通过模板学习用法
+- [在线交互 (obsidian-web)](http://obsidian.night07.com/) (由于免费 CF 的大小限制，不支持图片)
 - [文档](https://lincdocs.github.io/AnyBlock/)
 - 安装和使用
   - [在Obsidian中安装和使用](https://lincdocs.github.io/AnyBlock/docs/en/04.%20InstallAndUse_Obsidian.html)

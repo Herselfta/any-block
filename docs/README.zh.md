@@ -4,10 +4,19 @@ home: true
 title: AnyBlock
 icon: home
 heroText: AnyBlock
-tagline: 一个高通用markdown扩展的解析和渲染模块/插件
+# tagline带图片时，文本最好长点能换行，否则空间分配不美观
+tagline: |
+  一个高通用markdown扩展的解析和渲染模块/插件。
+  你可以选择任意文本区域并将其视为一个块，并将其任意处理。
 heroStyle:
   min-height: 450px
-# heroImage: /logo.png
+heroImage: https://raw.githubusercontent.com/any-block/any-block/refs/heads/main/docs/assets/icon.png
+heroImageDark: https://raw.githubusercontent.com/any-block/any-block/refs/heads/main/docs/assets/icon.png
+heroImageStyle: {
+  height: '288px',
+  width: '288px'
+}
+# heroImage: /logo.png。但被限制不能用相对路径了，大小的话再大也会缩小回 288 px
 
 actions:
   - text: Introduce
@@ -57,11 +66,11 @@ features:
     link: https://any-block.github.io/any-block/
 ---
 
+[中文](./README.zh.md) | [English](./README.md)
+
 # README
 
 ![Obsidian plugin](https://img.shields.io/endpoint?url=https%3A%2F%2Fscambier.xyz%2Fobsidian-endpoints%2Fany-block.json) ![GitHub release (latest by date including pre-releases)](https://img.shields.io/github/v/release/LincZero/obsidian-any-block)
-
-[中文](./README.zh.md) | [English](./README.md)
 
 ## AnyBlock是什么?
 
@@ -75,6 +84,7 @@ features:
 - 相关链接：**教程**、使用技能、贡献、二次开发、在线使用
 - [效果展示/**教程**](./README.show.md), 你可以通过切换里面的标签页来学习用法
 - [在线交互/Demo](https://any-block.github.io/any-block/)，你可以在这里编写体验、通过模板学习用法
+- [在线交互 (obsidian-web)](http://obsidian.night07.com/) (由于免费 CF 的大小限制，不支持图片)
 - [文档](./)
 - 安装和使用
   - [在Obsidian中安装和使用](https://lincdocs.github.io/AnyBlock/docs/en/04.%20InstallAndUse_Obsidian.html)

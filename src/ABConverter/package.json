@@ -1,6 +1,6 @@
 {
-  "name": "any-block-converter",
-  "version": "3.4.3",
+  "name": "@anyblock/any-block-core",
+  "version": "3.4.10",
   "description": "You can flexibility to create a 'Block' by many means. It also provides many useful features, like `list to table`. (obsidian/markdown-it/vuepress plugin/app)",
   "main": "index.js",
   "scripts": {
@@ -9,6 +9,7 @@
   "author": "LincZero",
   "license": "GNU Affero General Public License v3.0",
   "dependencies": {
+    "dompurify": "^3.4.3",
     "luxon": "^3.7.2",
     "markmap-lib": "^0.17.2",
     "plantuml-encoder": "^1.4.0"

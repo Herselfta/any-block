@@ -5,6 +5,7 @@
  * md_str <-> html
  */
 
+import DOMPurify from "dompurify"
 import {ABConvert_IOEnum, ABConvert, type ABConvert_SpecSimp} from "./ABConvert"
 import {ListProcess, type List_ListItem} from "./abc_list"
 
@@ -12,7 +13,7 @@ import plantumlEncoder from "plantuml-encoder"
 
 import { list2ActivityDiagramText } from "./abc_plantuml_tools"
 
-const abc_list2jsontext = ABConvert.factory({
+const _abc_list2jsontext = ABConvert.factory({
   id: "json2pumlJson",
   name: "json到可视化",
   process_param: ABConvert_IOEnum.text,
@@ -24,7 +25,7 @@ const abc_list2jsontext = ABConvert.factory({
   }
 })
 
-const abc_list2pumlWBS = ABConvert.factory({
+const _abc_list2pumlWBS = ABConvert.factory({
   id: "list2pumlWBS",
   name: "列表到puml工作分解结构",
   process_param: ABConvert_IOEnum.text,
@@ -46,7 +47,7 @@ const abc_list2pumlWBS = ABConvert.factory({
   }
 })
 
-const abc_list2pumlMindmap = ABConvert.factory({
+const _abc_list2pumlMindmap = ABConvert.factory({
   id: "list2pumlMindmap",
   name: "列表到puml思维导图",
   process_param: ABConvert_IOEnum.text,
@@ -65,7 +66,7 @@ const abc_list2pumlMindmap = ABConvert.factory({
   }
 })
 
-const abc_list2ActivityDiagramText = ABConvert.factory({
+const _abc_list2ActivityDiagramText = ABConvert.factory({
 	id: "list2pumlActivityDiagramText",
 	name: "列表到puml活动图文本",
 	process_param: ABConvert_IOEnum.text,
@@ -75,7 +76,7 @@ const abc_list2ActivityDiagramText = ABConvert.factory({
 	}
 })
 
-const abc_list2ActivityDiagram = ABConvert.factory({
+const _abc_list2ActivityDiagram = ABConvert.factory({
 	id: "list2pumlActivityDiagram",
 	name: "列表到puml活动图",
 	process_param: ABConvert_IOEnum.text,
@@ -92,14 +93,14 @@ export async function render_pumlText(text: string, div: HTMLElement) {
     // 当前mdit和ob使用
     var encoded = plantumlEncoder.encode(text)
     let url = 'http://www.plantuml.com/plantuml/img/' + encoded
-    div.innerHTML = `<img src="${url}">`
+    div.innerHTML = DOMPurify.sanitize(`<img src="${url}">`)
 
     // 2. 四选一。这里给环境渲染 (优缺点见abc_mermaid的相似方法)
     //ABConvertManager.getInstance().m_renderMarkdownFn("```plantuml\n"+text+"```", div)
 
     // 3. 四选一。这里不渲，交给上一层让上一层渲 (优缺点见abc_mermaid的相似方法)
     //div.classList.add("ab-raw")
-    //div.innerHTML = `<div class="ab-raw-data" type-data="plantuml" content-data='${text}'></div>`
+    //div.innerHTML = DOMPurify.sanitize(`<div class="ab-raw-data" type-data="plantuml" content-data='${text}'></div>`)
 
     // 4. 四选一。纯动态/手动渲染 (优缺点见abc_mermaid的相似方法)
     // ...

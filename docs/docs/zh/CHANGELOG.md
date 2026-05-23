@@ -2,6 +2,33 @@
 
 按时间倒序展示
 
+## 3.4.9 (2026-05-16)
+
+- enhance
+  - min 版本再简化，尺寸再压缩
+  - optimize obsidian review score
+- fix
+  - Obsidian 中实时模式无法渲染的问题 (eedf847ce263adc32eaad51b80c7ad132a69b2cb cause)
+
+## 3.4.8 (2026-05-16)
+
+- chore
+  - optimize obsidian review score
+  - 修复 core 模块抽离后，自动审查找不到 core 模块类型的问题
+
+## 3.4.5 (2026-05-14)
+
+- fix
+  - mdit 选择器会在文档第一行中失效
+- docs
+  - 一些文档校正
+  - 测试使用 obsidian-web 提供在线 obsidian，帮助更好地阅读和查看文档，
+    尝鲜体验: http://obsidian.night07.com/ (由于免费 CF 的大小限制，此处不支持图片)
+- 重构
+  - 别名系统，支持 pro 版别名
+  - 重构mdit模块，严格分离 node 版资源
+  - 将 i18n 模块从 obsidian 中移动到 core 模块
+
 ## 3.4.3 (2026-02-09)
 
 (不包含上一正式版到这版本之间的 beta 版更新日志，如需了解更多更新内容，可自主查看)

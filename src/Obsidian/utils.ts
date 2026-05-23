@@ -15,7 +15,7 @@ import {
   convert_delete_ab_header,
   convert_to_codeblock
 } from '@/Scripts/index'
-import { t } from 'locales/helper'
+import { t } from "@/ABConverter/locales/helper"
 
 /** obsidian 命令管理 */
 export function registerCommands(plugin: Plugin) {
@@ -59,7 +59,7 @@ export function registerCommands(plugin: Plugin) {
 
   plugin.addCommand({
     id: 'any-block-delete-ab-header',
-    name: 'Delete AnyBlock header',
+    name: t('any-block-delete-ab-header'),
     // callback: () => {},
     editorCallback: async (_editor, view) => {
       // 旧内容
@@ -114,7 +114,7 @@ export function registerStatus(plugin: Plugin) {
     const statusBtnContainer = plugin.addStatusBarItem();
     statusBtnContainer.addClass('mod-clickable');
 
-    const statusBtn = statusBtnContainer.createEl('div', {
+    const statusBtn: HTMLDivElement = statusBtnContainer.createEl('div', {
       cls: 'ab-rebuildview-btn'
     })
 

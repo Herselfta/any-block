@@ -16,9 +16,10 @@ export const ABCSetting: {
   env: "obsidian"|"obsidian-min"|"obsidian-pro"|"app"|"markdown-it"|"remark",
   // 某些环境的独占 api，其他环境用不上
   obsidian: {
-    global_app: any,
-    global_ctx: any, // MarkdownPostProcessorContext类型, obsidian专用
+    global_app: unknown|null,
+    global_ctx: unknown|null, // MarkdownPostProcessorContext类型, obsidian专用
     mermaid?: Promise<any>, // obsidian专用，obsidian 如何渲染mermaid
+    markmap_event?: (d: Element|Document) => Promise<void>, // 如何渲染 markmap
   },
   pro: {
     disable: boolean, // 禁用 pro 版的扩展功能，变为非 pro 版
@@ -33,6 +34,10 @@ export const ABCSetting: {
       oldView: any, tr: any, decorationSet: any | undefined, create_widget: any
     ) => any)
   },
+  // 运行时状态
+  state: {
+    language: 'en'|'zh'|'zh-TW'|string // 语言 (字典语言标志: 本地化语言名转标志, 不存在语言转en，自动选择转实际语言)
+  },
 } = {
   is_debug: false,
   env: "obsidian",
@@ -41,6 +46,7 @@ export const ABCSetting: {
     global_app: null,
     global_ctx: null,
     mermaid: undefined,
+    markmap_event: undefined,
   },
   pro: {
     disable: false,
@@ -48,7 +54,10 @@ export const ABCSetting: {
     enable_alias_override: true,
     editableblock_defaultRender: 'readmode',
     create_decorations: undefined
-  }
+  },
+  state: {
+    language: 'en',
+  },
 }
 
 /**
@@ -56,7 +65,7 @@ export const ABCSetting: {
  * 
  * @attention 注意：修改正则要注意小括号的位置是否对应，不然还要去修改索引
  */
-export const ABReg = {
+export const ABReg: Record<string, RegExp> = {
   /**
    * AB块头部
    *

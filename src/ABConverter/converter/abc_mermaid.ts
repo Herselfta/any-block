@@ -6,10 +6,10 @@
  * 使用注意项：在ob/mdit中的写法不同，本文件搜索render_mermaidText函数。里面有三种策略。ob推荐策略1，mdit推荐策略3
  */
 
-import {ABConvert_IOEnum, ABConvert, type ABConvert_SpecSimp} from "./ABConvert"
-import {ABConvertManager} from "../ABConvertManager"
-import {ListProcess, type List_ListItem} from "./abc_list"
-import {ABCSetting, ABReg} from "../ABSetting"
+import DOMPurify from "dompurify"
+import { ABConvert_IOEnum, ABConvert } from "./ABConvert"
+import { ListProcess, type List_ListItem } from "./abc_list"
+import { ABCSetting } from "../ABSetting"
 
 /**
  * 生成一个随机id
@@ -21,7 +21,7 @@ function getID(length=16){
 }
 
 // 纯组合，后续用别名模块替代
-const abc_title2mindmap = ABConvert.factory({
+const _abc_title2mindmap = ABConvert.factory({
   id: "title2mindmap",
   name: "标题到脑图",
   process_param: ABConvert_IOEnum.text,
@@ -34,7 +34,7 @@ const abc_title2mindmap = ABConvert.factory({
 })
 
 // 纯组合，后续用别名模块替代
-const abc_list2mindmap = ABConvert.factory({
+const _abc_list2mindmap = ABConvert.factory({
   id: "list2mindmap",
   name: "列表转mermaid思维导图",
   process_param: ABConvert_IOEnum.text,
@@ -46,7 +46,7 @@ const abc_list2mindmap = ABConvert.factory({
   }
 })
 
-const abc_list2mermaid = ABConvert.factory({
+const _abc_list2mermaid = ABConvert.factory({
   id: "list2mermaid",
   name: "列表转mermaid流程图",
   match: /^list2mermaid(\((.*)\))?$/,
@@ -65,7 +65,7 @@ const abc_list2mermaid = ABConvert.factory({
   }
 })
 
-const abc_list2mermaidText = ABConvert.factory({
+const _abc_list2mermaidText = ABConvert.factory({
   id: "list2mermaidText",
   name: "列表转mermaid文本",
   match: /^list2mermaidText(\((.*)\))?$/,
@@ -84,7 +84,7 @@ const abc_list2mermaidText = ABConvert.factory({
   }
 })
 
-const abc_list2mehrmaid = ABConvert.factory({
+const _abc_list2mehrmaid = ABConvert.factory({
   id: "list2mehrmaidText",
   name: "列表转mehrmaid文本",
   match: /^list2mehrmaidText(\((.*)\))?$/,
@@ -103,7 +103,7 @@ const abc_list2mehrmaid = ABConvert.factory({
   }
 })
 
-const abc_mermaid = ABConvert.factory({
+const _abc_mermaid = ABConvert.factory({
   id: "mermaid-with",
   name: "新mermaid",
   match: /^mermaid(\((.*)\))?$/,
@@ -272,7 +272,7 @@ async function render_mermaidText(mermaidText: string, div: HTMLElement) {
   // - 选用：mdit可以用这种，dev环境的最佳策略
   else {
     div.classList.add("ab-raw")
-    div.innerHTML = `<div class="ab-raw-data" type-data="mermaid" content-data='${mermaidText}'></div>`
+    div.innerHTML = DOMPurify.sanitize(`<div class="ab-raw-data" type-data="mermaid" content-data='${mermaidText}'></div>`)
   }
   // 4. 四选一。纯动态/手动渲染
   // - 优点：abc模块无需重复内置mermaid
