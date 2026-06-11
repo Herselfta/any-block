@@ -2,6 +2,126 @@
 
 按时间倒序展示
 
+## 3.4.13 (2026-06-05)
+
+> [!WARNING]
+> BREAKECHANGE
+> mdit 和 title 转 table 时，将默认使用非 fine 模式 (以前是 fine 模式)
+
+- feat
+  - 新增别名: `h2xxx` 和 `heading2xxx` 表示 `title2xxx`
+  - `title2listdata` 和 `mdit2listdata` 将分别支持 fine 模式和 非 fine 模式
+    见: `../dev%20docs/其他层级表示法.md`
+    非 fine 模式使用 `title2Listdata` 和 `mdit2Listdata` 表示
+- docs
+  - github release 页的 CHANGELOG 地址改为 github 仓库中的文件，更新会更及时
+
+test demo: (仅查看和体验新特性)
+
+````markdown
+# 0
+
+:::table
+
+@1
+> [!tip] Tip in cue
+> d
+> dd
+  
+多行
+```js
+const a = 'd' // dd
+```
+
+@2
+> [!warning]+ Warning callout
+> Here is a bomb! 💣
+
+Inline math: $E = mc^{2}$
+
+$$\int_0^\infty e^{-x^2}\,dx = \frac{\sqrt{\pi}}{2}$$
+
+@1 > 单行
+
+@2 
+```mermaid
+graph LR
+A --> B --> C
+```
+
+dd
+
+- 1
+  - 2
+  - 4
+- 5
+
+:::
+
+# 0
+
+[markmap]
+
+## 第一章
+
+第一章简介
+
+## 第二章
+
+### 第一节
+
+第二章第一节内容
+
+### 第二节
+
+第二章第二节内容
+
+- list1
+  - list1.1
+  - list1.2
+- list2
+
+第二章第二节内容2
+
+# 0
+
+[table]
+
+## 第一章
+
+第一章简介
+
+## 第二章
+
+### 第一节
+
+第二章第一节内容
+
+### 第二节
+
+第二章第二节内容
+
+- list1
+  - list1.1
+  - list1.2
+- list2
+
+第二章第二节内容2
+````
+
+## 3.4.11 (2026-06-04)
+
+- feat
+  - 新增 `mdit2list` 处理器
+    (与 `title2list` 类似，以后所有 list 选择器能做的事，mdit 处理器都能做了)
+  - 新增一些 `mdit` 相关的别名
+- fix
+  - `title2data` 处理器中，当一个标题后面紧接着的正文是代码块时，标题项会误连代码块
+- enhance
+  - code: 优化了 ts 别名
+  - code: 去除了一些残留依赖
+  - docs: 一些修改
+
 ## 3.4.9 (2026-05-16)
 
 - enhance
