@@ -267,7 +267,7 @@ export class ListProcess{
   }
 
   /**
-   * 标题大纲转列表数据（@todo 正文的level+10，要减掉）
+   * 标题大纲转列表数据
    * 
    * @detail
    * 这里要将标题、正文、列表 的等级合为一块，所以存在偏移值：
@@ -276,70 +276,197 @@ export class ListProcess{
    * 2. 正文等级,  = 0,              取值[+1,+Infi]
    * 3. 列表等级,  = `(.*)-`个数+1,  取值[0]
    * 
+   * (比较旧版是正文+10，列表+11，后来允许标题等级为负数。这样方便很多)
+   * 
+   * @fine_mode 精细拆分模式
+   * - true:  会将正文和列表拆分成多个节点
+   * - false: 会将标题+正文+列表合并成一个节点
    */
-  static title2data(text: string){
+  static title2data(text: string, fine_mode: boolean = true): List_ListItem {
     let list_itemInfo:List_ListItem = []
 
     const list_text = text.split("\n")
     let mul_mode:"heading"|"para"|"list"|"" = ""                // 多行模式，标题/正文/列表/空
-    let codeBlockFlag = ''
+    let codeBlockFlag = ''                                      // 代码块标志，避免在代码块内识别结束符号
     for (let line of list_text) {
-      // heading和mdit类型 需要跳过代码块内的结束标志
+
+      // heading和mdit类型都需要跳过代码块内的结束标志
       if (codeBlockFlag == '') {
         const match = line.match(ABReg.reg_code)
         if (match && match[3]) {
           codeBlockFlag = match[1]+match[3]
-          list_itemInfo[list_itemInfo.length-1].content = list_itemInfo[list_itemInfo.length-1].content+"\n"+line; continue
+          if (!fine_mode && list_itemInfo.length > 0) {         // 1. 维持当前层级 (标题层级)
+            list_itemInfo[list_itemInfo.length - 1].content += "\n" + line
+          }
+          else if (mul_mode === "heading" || mul_mode === "") { // 2. 进入正文层级 (从标题层级进入)
+            removeTailBlank(); list_itemInfo.push({
+              content: line,
+              level: 0
+            })
+            mul_mode = "para"
+          }
+          else {                                                // 3. 维持当前层级 (一般是正文/列表层级)
+            list_itemInfo[list_itemInfo.length-1].content += "\n" + line;
+          }
+          continue
         }
       }
-      else {
+      else { // 在代码块内，找代码块的结束标志                    // 4. 维持当前层级 (Mdit/正文层级)
         if (line.indexOf(codeBlockFlag) == 0) codeBlockFlag = ''
-        list_itemInfo[list_itemInfo.length-1].content = list_itemInfo[list_itemInfo.length-1].content+"\n"+line; continue
+        list_itemInfo[list_itemInfo.length-1].content += "\n" + line; continue;
       }
 
-      //
+      // 非代码块内环境
       const match_heading = line.match(ABReg.reg_heading_noprefix)
       const match_list = line.match(ABReg.reg_list_noprefix)
-      if (match_heading && !match_heading[1]){                // 1. 标题层级（只识别根处）
-        removeTailBlank()
-        list_itemInfo.push({
-          content: match_heading[4],
-          level: (match_heading[3].length-1)-10
+      if (match_heading && !match_heading[1]){                  // 1. 进入标题层级
+        removeTailBlank(); list_itemInfo.push({
+          content: fine_mode ? match_heading[4] : line, // 可选是否把标题标志也放进去
+          level: (match_heading[3].length-1) - 10
         })
         mul_mode = "heading"
       }
-      else if (match_list){                                   // 2. 列表层级 ~~（只识别根处）~~
-        removeTailBlank()
-        list_itemInfo.push({
+      else if (!fine_mode && list_itemInfo.length > 0) {        // 2. 维持当前层级 (标题层级)
+        list_itemInfo[list_itemInfo.length - 1].content += "\n" + line; continue;
+      }
+      else if (match_list){                                     // 3. 进入列表层级 (列表层级的带 `-` 行)
+        removeTailBlank(); list_itemInfo.push({
           content: match_list[4],
-          level: match_list[1].length+1//+10
+          level: match_list[1].length + 1
         })
         mul_mode = "list"
       }
-      else if (/^\S/.test(line) && mul_mode=="list"){         // 3. 带缩进且在列表层级中
-        list_itemInfo[list_itemInfo.length-1].content = list_itemInfo[list_itemInfo.length-1].content+"\n"+line
+      else if (mul_mode=="list" && /^\s/.test(line)){           // 4. 维持列表层级 (列表层级的不带 `-` 行)
+        list_itemInfo[list_itemInfo.length-1].content += "\n" + line.trimStart(); continue;
       }
-      else {                                                  // 4. 正文层级
-        if (mul_mode=="para") {
-          list_itemInfo[list_itemInfo.length-1].content = list_itemInfo[list_itemInfo.length-1].content+"\n"+line
+      else {
+        if (mul_mode=="para") {                                 // 维持正文层级
+          list_itemInfo[list_itemInfo.length-1].content += "\n" + line; continue;
         }
-        else if(/^\s*$/.test(line)){
+        else if(/^\s*$/.test(line)){                            // 跳过非正文内的空行
           continue
         }
-        else{
-          list_itemInfo.push({
+        else {                                                  // 进入正文层级
+          removeTailBlank(); list_itemInfo.push({
             content: line,
-            level: 0//+10
+            level: 0
           })
           mul_mode = "para"
+          continue
         }
       }
     }
     removeTailBlank()
     return list_itemInfo
 
+    /// 清除最后一个节点的尾部空白
     function removeTailBlank(){
       if (mul_mode=="para"||mul_mode=="list"){
+        list_itemInfo[list_itemInfo.length-1].content = list_itemInfo[list_itemInfo.length-1].content.replace(/\s*$/, "")
+      }
+    }
+  }
+
+  /**
+   * MarkdownIt 转列表数据
+   * 
+   * @detail
+   * 与 title2data 的逻辑基本相同
+   * 
+   * 有很多写法变型和语法糖，所以逻辑比较复杂。
+   * 具体设计详见 "docs/docs/dev docs/其他层级表示法.md"
+   * 
+   * 支持:
+   * 
+   * - 单行标题模式
+   * - 多行标题模式
+   * - 缺少分割标题模式
+   * 
+   * @fine_mode 精细拆分模式
+   * - true:  会将正文和列表拆分成多个节点
+   * - false: 会将标题+正文+列表合并成一个节点
+   */
+  static mdit2data(text: string, fine_mode: boolean = true): List_ListItem {
+    let list_itemInfo: List_ListItem = []
+
+    const list_text = text.split("\n")
+    let mul_mode: "mdit" | "para" | "list" | "" = ""            // 多行模式，mdit/正文/列表/空
+    let codeBlockFlag = ''                                      // 代码块标志，避免在代码块内识别结束符号
+    for (let line of list_text) {
+
+      // heading和mdit类型都需要跳过代码块内的结束标志
+      if (codeBlockFlag == '') {
+        const match = line.match(ABReg.reg_code)
+        if (match && match[3]) {
+          codeBlockFlag = match[1] + match[3]
+          if (!fine_mode && list_itemInfo.length > 0) {         // 1. 维持当前层级 (Mdit层级)
+            list_itemInfo[list_itemInfo.length - 1].content += "\n" + line
+          }
+          else if (mul_mode === "mdit" || mul_mode === "") {    // 2. 进入正文层级 (从Mdit层级进入)
+            removeTailBlank(); list_itemInfo.push({
+              content: line,
+              level: 0
+            })
+            mul_mode = "para"
+          }
+          else {                                                // 3. 维持当前层级 (一般是正文/列表层级)
+            list_itemInfo[list_itemInfo.length-1].content += "\n" + line
+          }
+          continue
+        }
+      }
+      else { // 在代码块内，找代码块的结束标志                    // 4. 维持当前层级 (Mdit/正文层级)
+        if (line.indexOf(codeBlockFlag) == 0) codeBlockFlag = ''
+        list_itemInfo[list_itemInfo.length-1].content += "\n" + line; continue;
+      }
+
+      // 非代码块内环境
+      const match_mdit = line.match(/^(\s*)@(\d+)(?:\s+(.*))?$/)
+      const match_list = line.match(ABReg.reg_list_noprefix)
+      if (match_mdit && !match_mdit[1]) {                       // 1. 进入Mdit@层级
+        removeTailBlank(); list_itemInfo.push({
+          content: match_mdit[3] ?? "",
+          level: Number(match_mdit[2]) - 100
+        })
+        mul_mode = "mdit"
+      }
+      else if (!fine_mode && list_itemInfo.length > 0) {        // 2. 维持当前层级 (Mdit层级)
+        list_itemInfo[list_itemInfo.length - 1].content += "\n" + line; continue;
+      }
+      else if (match_list) {                                    // 3. 进入列表层级 (列表层级的带 `-` 行)
+        removeTailBlank(); list_itemInfo.push({
+          content: match_list[4],
+          level: match_list[1].length + 1
+        })
+        mul_mode = "list"
+      }
+      else if (mul_mode == "list" && /^\s/.test(line)) {        // 4. 维持列表层级 (列表层级的不带 `-` 行)
+        list_itemInfo[list_itemInfo.length-1].content += "\n" + line.trimStart(); continue;
+      }
+      else {
+        if (mul_mode == "para") {                               // 维持正文层级
+          list_itemInfo[list_itemInfo.length-1].content += "\n" + line; continue;
+        }
+        else if (/^\s*$/.test(line)) {                          // 跳过非正文空行
+          continue
+        }
+        else {                                                  // 进入正文层级
+          removeTailBlank(); list_itemInfo.push({
+            content: line,
+            level: 0
+          })
+          mul_mode = "para"
+          continue
+        }
+      }
+    }
+
+    removeTailBlank()
+    return list_itemInfo
+
+    /// 清除最后一个节点的尾部空白
+    function removeTailBlank(){
+      if (mul_mode == "para" || mul_mode == "list") {
         list_itemInfo[list_itemInfo.length-1].content = list_itemInfo[list_itemInfo.length-1].content.replace(/\s*$/, "")
       }
     }
@@ -565,7 +692,7 @@ export const abc_list2listdata = ABConvert.factory({
   process_param: ABConvert_IOEnum.text,
   process_return: ABConvert_IOEnum.list_stream,
   detail: "列表到listdata",
-  process: (el, header, content: string): List_ListItem=>{
+  process: (_el, _header, content: string): List_ListItem=>{
     return ListProcess.list2data(content) as List_ListItem
   }
 })
@@ -575,9 +702,42 @@ export const abc_title2listdata = ABConvert.factory({
   name: "标题到listdata",
   process_param: ABConvert_IOEnum.text,
   process_return: ABConvert_IOEnum.list_stream,
-  detail: "标题到listdata",
-  process: (el, header, content: string): List_ListItem=>{
-    return ListProcess.title2data(content) as List_ListItem
+  detail: "标题到listdata。细粒度版本，列表会拆分成多个节点",
+  process: (_el, _header, content: string): List_ListItem=>{
+    return ListProcess.title2data(content, true) as List_ListItem
+  }
+})
+
+export const abc_title2Listdata = ABConvert.factory({
+  id: "title2Listdata",
+  name: "标题到Listdata",
+  process_param: ABConvert_IOEnum.text,
+  process_return: ABConvert_IOEnum.list_stream,
+  detail: "标题到Listdata。粗粒度版本，列表为一个节点，不会拆分",
+  process: (_el, _header, content: string): List_ListItem=>{
+    return ListProcess.title2data(content, false) as List_ListItem
+  }
+})
+
+export const abc_mdit2listdata = ABConvert.factory({
+  id: "mdit2listdata",
+  name: "mdit到listdata",
+  process_param: ABConvert_IOEnum.text,
+  process_return: ABConvert_IOEnum.list_stream,
+  detail: "mdit到listdata。细粒度版本，列表会拆分成多个节点",
+  process: (_el, _header, content: string): List_ListItem=>{
+    return ListProcess.mdit2data(content, true) as List_ListItem
+  }
+})
+
+export const abc_mdit2Listdata = ABConvert.factory({
+  id: "mdit2Listdata",
+  name: "mdit到Listdata",
+  process_param: ABConvert_IOEnum.text,
+  process_return: ABConvert_IOEnum.list_stream,
+  detail: "mdit到Listdata。粗粒度版本，列表为一个节点，不会拆分",
+  process: (_el, _header, content: string): List_ListItem=>{
+    return ListProcess.mdit2data(content, false) as List_ListItem
   }
 })
 
@@ -587,7 +747,7 @@ const _abc_listdata2list = ABConvert.factory({
   process_param: ABConvert_IOEnum.list_stream,
   process_return: ABConvert_IOEnum.text,
   detail: "listdata到列表",
-  process: (el, header, content: List_ListItem): string=>{
+  process: (_el, _header, content: List_ListItem): string=>{
     return ListProcess.data2list(content) as string
   }
 })
@@ -598,7 +758,7 @@ const _abc_listdata2nodes = ABConvert.factory({
   process_param: ABConvert_IOEnum.list_stream,
   process_return: ABConvert_IOEnum.el,
   detail: "listdata到节点图",
-  process: (el, header, content: List_ListItem): HTMLElement=>{
+  process: (el, _header, content: List_ListItem): HTMLElement=>{
     return ListProcess.data2nodes(content, el) as HTMLElement
   }
 })
@@ -606,10 +766,11 @@ const _abc_listdata2nodes = ABConvert.factory({
 const _abc_listdata2strict = ABConvert.factory({
   id: "listdata2strict",
   name: "listdata严格化",
+  match: /listdata2strict|listdata2lint/,
   process_param: ABConvert_IOEnum.list_stream,
   process_return: ABConvert_IOEnum.list_stream,
   detail: "将列表数据转化为更规范的列表数据。统一缩进符(2空格 4空格 tab混用)为level 1、禁止跳等级(h1直接就到h3)",
-  process: (el, header, content: List_ListItem): List_ListItem=>{
+  process: (_el, _header, content: List_ListItem): List_ListItem=>{
     return ListProcess.data2strict(content)
   }
 })
@@ -620,7 +781,7 @@ const _abc_listdata2task = ABConvert.factory({
   process_param: ABConvert_IOEnum.list_stream,
   process_return: ABConvert_IOEnum.list_stream,
   detail: "当列表中存在任务列表项时，令此列表项支持任务项",
-  process: (el, header, content: List_ListItem): List_ListItem=>{
+  process: (_el, _header, content: List_ListItem): List_ListItem=>{
     return ListProcess.data2taskData(content)
   }
 })
@@ -631,7 +792,7 @@ export const abc_list2listnode = ABConvert.factory({
   process_param: ABConvert_IOEnum.text,
   process_return: ABConvert_IOEnum.json,
   detail: "列表到listnode",
-  process: (el, header, content: string): string=>{
+  process: (_el, _header, content: string): string=>{
     const data: listNodes[] = ListProcess.list2listnode(content)
     return JSON.stringify(data, null, 2) // TMP
   }
@@ -643,7 +804,7 @@ export const abc_list2json = ABConvert.factory({
   process_param: ABConvert_IOEnum.text,
   process_return: ABConvert_IOEnum.json,
   detail: "列表到json",
-  process: (el, header, content: string): string=>{
+  process: (_el, _header, content: string): string=>{
     const data: object = ListProcess.list2json(content)
     return JSON.stringify(data, null, 2) // TMP
   }
